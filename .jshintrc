@@ -1,0 +1,11 @@
+{
+  "eqnull": true,
+  "undef": true,
+  "unused": true,
+  "node": true,
+  "globals": {
+    "define": true,
+    "brackets": true,
+    "$": true
+  }
+}

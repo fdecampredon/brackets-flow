@@ -1,0 +1,31 @@
+{
+  "name": "brackets-flow",
+  "version": "0.0.0",
+  "description": "",
+  "main": "main.js",
+  "node": "true",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "browserify  src/index.js -s index > ./bundle.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "browserify": "^6.3.2",
+    "reactify": "^0.17.0"
+  },
+  "browserify": {
+    "transform": [
+      [
+        "reactify",
+        {
+          "es6": true,
+          "stripTypes": true
+        }
+      ]
+    ]
+  },
+  "dependencies": {
+    "bluebird": "^2.3.11"
+  }
+}
