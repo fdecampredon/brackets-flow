@@ -18,7 +18,7 @@ var ProjectManager = brackets.getModule('project/ProjectManager');
 var CodeHintManager = brackets.getModule('editor/CodeHintManager');
 
 var FlowErrorProvider = require('./errorProvider');
-var FlowCompletionProvider = require('./completionProvider');
+var FlowHintProvider = require('./hintProvider');
 var flow = require('./flow');
 
 
@@ -69,7 +69,7 @@ function init(connection: any) {
   flow.setNodeConnection(connection);
   updateProject();
   CodeInspection.register('javascript', FlowErrorProvider); 
-  CodeHintManager.registerHintProvider(FlowCompletionProvider, ['javascript'], 1);
+  CodeHintManager.registerHintProvider(FlowHintProvider, ['javascript'], 1);
   $(ProjectManager).on('projectOpen', updateProject);
 }
 
