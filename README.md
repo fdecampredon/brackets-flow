@@ -8,3 +8,4 @@ Until that plugin is considered stable use the [Install From URL](https://github
 
 ##Features:
 * Errors reporting
+* Code Hints
