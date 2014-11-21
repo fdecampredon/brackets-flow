@@ -10,7 +10,7 @@ var nodeConnection: any;
 /**
  * execute a bash command
  */
-function executeCommand(command: string): Promise {
+function executeCommand<T>(command: string): Promise<any> {
   if (running) {
     return running.then(() => Promise.resolve(nodeConnection.domains.flow.executeCommand(command)));
   } else {
@@ -48,9 +48,8 @@ type CompletionEntry = {
 }
 
 function autocomplete(fileName: string, content: string, line: number, column: number): Promise<CompletionEntry[]> {
-  var promise: any = executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
+  return executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
     "' | flow autocomplete " + fileName + " " + line + " " + column + " --json --from brackets-flow");
-  return promise;
 }
 
 type FlowError = {
@@ -66,12 +65,11 @@ type FlowError = {
 }
 
 function flowStatus(): Promise<FlowError[]> {
-  var promise: any =  executeCommand('flow status --json --from brackets-flow')
+  return  executeCommand('flow status --json --from brackets-flow')
     .then(function (message: { errors: Error[]; })  {
       return message.errors; 
     });
     
-  return promise;
 }
 
 module.exports = {

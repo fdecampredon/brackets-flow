@@ -5458,7 +5458,7 @@ var nodeConnection     ;
 /**
  * execute a bash command
  */
-function executeCommand(command        )          {
+function executeCommand   (command        )               {
   if (running) {
     return running.then(function()  {return Promise.resolve(nodeConnection.domains.flow.executeCommand(command));});
   } else {
@@ -5496,9 +5496,8 @@ function setNodeConnection(conn     )       {
  
 
 function autocomplete(fileName        , content        , line        , column        )                             {
-  var promise      = executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
+  return executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
     "' | flow autocomplete " + fileName + " " + line + " " + column + " --json --from brackets-flow");
-  return promise;
 }
 
                   
@@ -5514,12 +5513,11 @@ function autocomplete(fileName        , content        , line        , column   
  
 
 function flowStatus()                       {
-  var promise      =  executeCommand('flow status --json --from brackets-flow')
+  return  executeCommand('flow status --json --from brackets-flow')
     .then(function (message                      )  {
       return message.errors; 
     });
     
-  return promise;
 }
 
 module.exports = {
