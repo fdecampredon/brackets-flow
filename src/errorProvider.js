@@ -1,10 +1,10 @@
 /*@flow*/
 
-var { flowStatus } = require('./flow');
+var { status } = require('./flow');
 
 function scanFileAsync(content: string, path: string): any {
   return $.Deferred(deffered => {
-    flowStatus().then(errors => {
+    status().then(errors => {
       var bracketsErrors = errors
         .filter(error => error.message[0].path === path)
         .map(error => ({

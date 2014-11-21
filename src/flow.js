@@ -64,8 +64,8 @@ type FlowError = {
     } [];
 }
 
-function flowStatus(): Promise<FlowError[]> {
-  return  executeCommand('flow status --json --from brackets-flow')
+function status(): Promise<FlowError[]> {
+  return  executeCommand('flow status --json --from brackets-flow   --show-all-errors')
     .then(function (message: { errors: Error[]; })  {
       return message.errors; 
     });
@@ -75,6 +75,6 @@ function flowStatus(): Promise<FlowError[]> {
 module.exports = {
   start, 
   setNodeConnection, 
-  flowStatus,
+  status,
   autocomplete
 };
