@@ -5411,115 +5411,6 @@ process.chdir = function (dir) {
 },{}],37:[function(require,module,exports){
 /*@flow*/
 
-                          
-                          
-
-
-var $__0=     require('./flow'),autocomplete=$__0.autocomplete;
-var $__1=         require('./jsUtils'),getQuery=$__1.getQuery;
-var StringMatch       = brackets.getModule("utils/StringMatch");
-
-
-var editor      ;
-var matcher      = new StringMatch.StringMatcher({ preferPrefixMatches: true });
-
-function hasHints(_editor     , implicitChar        )          {
-  if (
-    (!implicitChar || /[\w.\($_]/.test(implicitChar)) &&
-    _editor.document.getText().indexOf('@flow') !== -1
-  ) {
-    
-    editor = _editor;
-    return true;  
-  }
-  
-  return false;
-}
-
-
-function getHints(implicitChar        )      {
-  var fileName         = editor.document.file.fullPath;
-  var position                             = editor.getCursorPos();
-  var content         = editor.document.getText();
-  var query = getQuery(editor);
-  
-  
-  var deferred = $.Deferred();
-  
-  if (!hasHints(editor, implicitChar)) {
-    deferred.resolve({
-        hints: [],
-        selectInitial: false 
-      });
-  } else {
-    autocomplete(fileName, content, position.line + 1, position.ch + 1).then(function(entries)  {
-      var hints = entries
-        .map(function(entry)  {return {
-          entry: entry,
-          searchResult: matcher.match(entry.name, query)
-        };})
-        .filter(function(entry)  {return !!entry.searchResult;})
-        .sort(function(entryA, entryB)  {return entryA.searchResult.matchGoodness - entryB.searchResult.matchGoodness;})
-        .map(function ($__0 ) {var entry=$__0.entry,searchResult=$__0.searchResult;
-          var jqueryObj = $('<span>');
-          var ranges                                                                      = searchResult.stringRanges;
-          
-          var content = ranges.map(function(range)  {
-            var result = $('<span>' + range.text + '</span>');
-            if (range.matched) {
-              result.css({ 'font-weight': 'bold'});
-            }
-            return result;
-          });
-          
-          if (entry.type) {
-            content.push('<span> - ' + entry.type + '</span>');
-          }
-          
-          
-          jqueryObj.append(content);
-          jqueryObj.data('entry', entry);
-          jqueryObj.data('query', query);
-          
-          return jqueryObj;
-        });
-      
-      
-      deferred.resolve({
-        hints: hints,
-        match: null,
-        selectInitial: true
-      });
-    });
-  }
-  return deferred;
-}
-
-
-
-function insertHint($hintObj     )       {
-  var entry  = $hintObj.data('entry'),
-    query         = $hintObj.data('query'), 
-    position = editor.getCursorPos(),
-    startPos = !query ? 
-        position : 
-        {
-            line : position.line,
-            ch : position.ch - query.length
-        }
-    ;
-  editor.document.replaceRange(entry.name, startPos, position);
-}
-
-
-module.exports =  {
-  hasHints:hasHints,
-  getHints:getHints,
-  insertHint:insertHint
-};
-},{"./flow":39,"./jsUtils":41}],38:[function(require,module,exports){
-/*@flow*/
-
 var $__0=    require('./flow'),flowStatus=$__0.flowStatus;
 
 function scanFileAsync(content        , path        )      {
@@ -5554,7 +5445,7 @@ module.exports = {
   name: 'Flow', 
   scanFileAsync:scanFileAsync 
 };
-},{"./flow":39}],39:[function(require,module,exports){
+},{"./flow":38}],38:[function(require,module,exports){
 /* @flow */
 
 var Promise = require('bluebird').Promise;
@@ -5638,7 +5529,118 @@ module.exports = {
   autocomplete:autocomplete
 };
 
-},{"bluebird":3}],40:[function(require,module,exports){
+},{"bluebird":3}],39:[function(require,module,exports){
+/*@flow*/
+
+                          
+                          
+
+
+var $__0=     require('./flow'),autocomplete=$__0.autocomplete;
+var $__1=         require('./jsUtils'),getQuery=$__1.getQuery;
+var StringMatch       = brackets.getModule("utils/StringMatch");
+
+
+var editor      ;
+var matcher      = new StringMatch.StringMatcher({ preferPrefixMatches: true });
+
+function hasHints(_editor     , implicitChar        )          {
+  if (
+    (!implicitChar || /[\w.\($_]/.test(implicitChar)) &&
+    _editor.document.getText().indexOf('@flow') !== -1
+  ) {
+    
+    editor = _editor;
+    return true;  
+  }
+  
+  return false;
+}
+
+
+function getHints(implicitChar        )      {
+  var fileName         = editor.document.file.fullPath;
+  var position                             = editor.getCursorPos();
+  var content         = editor.document.getText();
+  var query = getQuery(editor);
+  
+  
+  var deferred = $.Deferred();
+  
+  if (!hasHints(editor, implicitChar)) {
+    deferred.resolve({
+        hints: [],
+        selectInitial: false 
+      });
+  } else {
+    autocomplete(fileName, content, position.line + 1, position.ch + 1).then(function(entries)  {
+      var hints = entries
+        .map(function(entry)  {return {
+          entry: entry,
+          searchResult: matcher.match(entry.name, query)
+        };})
+        .filter(function(entry)  {return !!entry.searchResult;})
+        .sort(function(entryA, entryB)  {return entryA.searchResult.matchGoodness - entryB.searchResult.matchGoodness;})
+        .map(function ($__0 ) {var entry=$__0.entry,searchResult=$__0.searchResult;
+          var jqueryObj = $('<span>');
+          var ranges                                                                      = searchResult.stringRanges;
+          
+          var content = ranges.map(function(range)  {
+            var result = $('<span>');
+            result.text(range.text);
+            if (range.matched) {
+              result.css({ 'font-weight': 'bold'});
+            }
+            return result;
+          });
+          
+          if (entry.type) {
+            var typeSpan = $('<span>');
+            typeSpan.text(entry.type).text(' - ' + entry.type);
+            content.push(typeSpan);
+          }
+          
+          
+          jqueryObj.append(content);
+          jqueryObj.data('entry', entry);
+          
+          return jqueryObj;
+        });
+      
+      
+      deferred.resolve({
+        hints: hints,
+        match: null,
+        selectInitial: true
+      });
+    });
+  }
+  return deferred;
+}
+
+
+
+function insertHint($hintObj     )       {
+  var entry  = $hintObj.data('entry');
+  var query = getQuery(editor);
+  var position = editor.getCursorPos();
+  var startPos = !query ? 
+        position : 
+        {
+            line : position.line,
+            ch : position.ch - query.length
+        }
+    ;
+  editor.document.replaceRange(entry.name, startPos, position);
+}
+
+
+module.exports =  {
+  hasHints:hasHints,
+  getHints:getHints,
+  insertHint:insertHint
+};
+},{"./flow":38,"./jsUtils":41}],40:[function(require,module,exports){
 
 /*@flow*/
                           
@@ -5659,7 +5661,7 @@ var ProjectManager = brackets.getModule('project/ProjectManager');
 var CodeHintManager = brackets.getModule('editor/CodeHintManager');
 
 var FlowErrorProvider = require('./errorProvider');
-var FlowCompletionProvider = require('./completionProvider');
+var FlowHintProvider = require('./hintProvider');
 var flow = require('./flow');
 
 
@@ -5710,7 +5712,7 @@ function init(connection     ) {
   flow.setNodeConnection(connection);
   updateProject();
   CodeInspection.register('javascript', FlowErrorProvider); 
-  CodeHintManager.registerHintProvider(FlowCompletionProvider, ['javascript'], 1);
+  CodeHintManager.registerHintProvider(FlowHintProvider, ['javascript'], 1);
   $(ProjectManager).on('projectOpen', updateProject);
 }
 
@@ -5726,7 +5728,7 @@ function updateProject() {
 
 
 module.exports = init;
-},{"./completionProvider":37,"./errorProvider":38,"./flow":39}],41:[function(require,module,exports){
+},{"./errorProvider":37,"./flow":38,"./hintProvider":39}],41:[function(require,module,exports){
 /*@flow*/
 
 /* code from acorn see: https://github.com/marijnh/acorn/ */

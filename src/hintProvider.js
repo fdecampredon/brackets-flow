@@ -54,7 +54,8 @@ function getHints(implicitChar: string): any {
           var ranges: Array<{text:string; matched:boolean; includesLastSegment:boolean;}> = searchResult.stringRanges;
           
           var content = ranges.map(range => {
-            var result = $('<span>' + range.text + '</span>');
+            var result = $('<span>');
+            result.text(range.text);
             if (range.matched) {
               result.css({ 'font-weight': 'bold'});
             }
@@ -62,13 +63,14 @@ function getHints(implicitChar: string): any {
           });
           
           if (entry.type) {
-            content.push('<span> - ' + entry.type + '</span>');
+            var typeSpan = $('<span>');
+            typeSpan.text(entry.type).text(' - ' + entry.type);
+            content.push(typeSpan);
           }
           
           
           jqueryObj.append(content);
           jqueryObj.data('entry', entry);
-          jqueryObj.data('query', query);
           
           return jqueryObj;
         });
@@ -87,10 +89,10 @@ function getHints(implicitChar: string): any {
 
 
 function insertHint($hintObj: any): void {
-  var entry  = $hintObj.data('entry'),
-    query: string = $hintObj.data('query'), 
-    position = editor.getCursorPos(),
-    startPos = !query ? 
+  var entry  = $hintObj.data('entry');
+  var query = getQuery(editor);
+  var position = editor.getCursorPos();
+  var startPos = !query ? 
         position : 
         {
             line : position.line,
