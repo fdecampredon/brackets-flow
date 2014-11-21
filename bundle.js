@@ -5561,7 +5561,7 @@ var matcher      = new StringMatch.StringMatcher({ preferPrefixMatches: true });
 function hasHints(_editor     , implicitChar        )          {
   if (
     (!implicitChar || /[\w.\($_]/.test(implicitChar)) &&
-    isFlowFile(editor.document.getText())
+    isFlowFile(_editor.document.getText())
   ) {
     
     editor = _editor;
@@ -5654,6 +5654,7 @@ module.exports =  {
   getHints:getHints,
   insertHint:insertHint
 };
+
 },{"./flow":38,"./jsUtils":42}],40:[function(require,module,exports){
 
 /*@flow*/
@@ -5678,6 +5679,7 @@ var EditorManager = brackets.getModule('editor/EditorManager');
 var FlowErrorProvider = require('./errorProvider');
 var FlowHintProvider = require('./hintProvider');
 var inlineEditProvider = require('./inlineEditProvider');
+var jumpToDefinitionProvider = require('./jumpToDefinitionProvider');
 var flow = require('./flow');
 
 
@@ -5730,6 +5732,7 @@ function init(connection     ) {
   CodeInspection.register('javascript', FlowErrorProvider); 
   CodeHintManager.registerHintProvider(FlowHintProvider, ['javascript'], 1);
   EditorManager.registerInlineEditProvider(inlineEditProvider, 1);
+  EditorManager.registerJumpToDefProvider(jumpToDefinitionProvider, 1);
   $(ProjectManager).on('projectOpen', updateProject);
 }
 
@@ -5745,7 +5748,7 @@ function updateProject() {
 
 
 module.exports = init;
-},{"./errorProvider":37,"./flow":38,"./hintProvider":39,"./inlineEditProvider":41}],41:[function(require,module,exports){
+},{"./errorProvider":37,"./flow":38,"./hintProvider":39,"./inlineEditProvider":41,"./jumpToDefinitionProvider":43}],41:[function(require,module,exports){
 /*@flow*/
 
 var $__0=    require('./flow'),getDef=$__0.getDef;
@@ -5799,7 +5802,7 @@ function inlineEditProvider(hostEditor     , pos                            ) {
         deferred.reject(e);
     });
       
-  return deferred;
+  return deferred.promise();
 }
 
 module.exports = inlineEditProvider;
@@ -5878,5 +5881,70 @@ module.exports = {
   getQuery:getQuery,
   isFlowFile:isFlowFile
 };
-},{}]},{},[40])(40)
+},{}],43:[function(require,module,exports){
+/*@flow*/
+
+
+var EditorManager = brackets.getModule('editor/EditorManager'),
+    Commands = brackets.getModule('command/Commands'),
+    CommandManager = brackets.getModule('command/CommandManager');
+
+
+var Promise = require('bluebird').Promise;
+
+var $__0=    require('./flow'),getDef=$__0.getDef;
+var $__1=    require('./jsUtils'),isFlowFile=$__1.isFlowFile;
+
+                     
+
+
+    
+function jumpToDefinitionProvider() {
+  var editor = EditorManager.getFocusedEditor();
+
+  if (!editor || editor.getModeForSelection() !== 'javascript') {
+      return null;
+  }
+  
+
+  var sel = editor.getSelection(false);
+  if (sel.start.line !== sel.end.line) {
+    return null;
+  }
+  
+  var fileName = editor.document.file.fullPath;
+  var content = editor.document.getText();
+  if (!isFlowFile(content)) {
+    return;
+  }
+  
+  var deferred = $.Deferred();
+ 
+  var pos = editor.getCursorPos();
+
+  getDef(fileName, content, pos.line + 1, pos.ch + 1)
+    .then(function(definition)  {
+      if (!definition.path) {
+        deferred.reject();
+      }
+      if (editor === EditorManager.getFocusedEditor()) {
+          if (editor.getCursorPos().line === pos.line) {
+            Promise.resolve(definition.path === fileName? 
+              true: 
+              CommandManager.execute(Commands.FILE_OPEN, {fullPath: definition.path})
+            ).then(function() {
+              var editor = EditorManager.getFocusedEditor();
+              editor.setCursorPos(definition.line -1, definition.start -1, true, true);
+              deferred.resolve(true);
+            }).catch(function(e)  {return deferred.reject(e);});
+          }
+      }
+      deferred.reject();
+  }, function()  {return deferred.reject();}); 
+  
+  return deferred.promise();
+}
+
+module.exports = jumpToDefinitionProvider;
+},{"./flow":38,"./jsUtils":42,"bluebird":3}]},{},[40])(40)
 });

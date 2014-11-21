@@ -51,7 +51,7 @@ function inlineEditProvider(hostEditor: any, pos: {line: number; ch: number}) {
         deferred.reject(e);
     });
       
-  return deferred;
+  return deferred.promise();
 }
 
 module.exports = inlineEditProvider;
