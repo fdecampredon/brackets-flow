@@ -19,7 +19,41 @@ function executeCommand(command: string): Promise {
 }
 
 
-interface Error {
+function start(root: string): Promise<any> {
+  if (projectRoot !== root) {
+    projectRoot = root;
+    running = Promise.resolve(nodeConnection.domains.flow.setProjectRoot(root));
+  }
+  return Promise.resolve(running);
+}
+
+function setNodeConnection(conn: any): void {
+  nodeConnection = conn;
+}
+ 
+
+
+type CompletionEntry = {
+  name: string;
+  type: string;
+  func_details: ?{
+    return_type: string;
+    params: { name: string; type: string }[]
+  };
+  path: string;
+  line: number;
+  endline: number;
+  start: number;
+  end: number;
+}
+
+function autocomplete(fileName: string, content: string, line: number, column: number): Promise<CompletionEntry[]> {
+  var promise: any = executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
+    "' | flow autocomplete " + fileName + " " + line + " " + column + " --json --from brackets-flow");
+  return promise;
+}
+
+type FlowError = {
   message: {
       descr: string;
       code: number;
@@ -31,34 +65,18 @@ interface Error {
     } [];
 }
 
-/**
- * execute a bash command
- */
-function flowStatus(): Promise<Error[]> {
-  return executeCommand('flow status --json --from brackets-flow')
+function flowStatus(): Promise<FlowError[]> {
+  var promise: any =  executeCommand('flow status --json --from brackets-flow')
     .then(function (message: { errors: Error[]; })  {
       return message.errors; 
     });
-}
-
-function setProjectRoot(root): Promise {
-  if (projectRoot !== root) {
-    projectRoot = root;
-    running = Promise.resolve(nodeConnection.domains.flow.setProjectRoot(root));
-  }
-  return running;
-}
-
-function setNodeConnection(conn: any): void {
-  nodeConnection = conn;
-}
-
-function start(root: string): Promise {
-  return setProjectRoot(root);
+    
+  return promise;
 }
 
 module.exports = {
   start, 
   setNodeConnection, 
-  flowStatus
+  flowStatus,
+  autocomplete
 };

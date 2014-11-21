@@ -7,8 +7,9 @@ var exec = require('child_process').exec;
 var projectRoot = '';
 
 function executeCommand(cmd, callback) {
+  cmd = cmd.replace(/'/g, "'\\''" );
   cmd = 'echo \'cd "'+ projectRoot + '" && '+ cmd + '\' | bash --login';
-  exec(cmd, function (error, stdout, stderr) {
+  exec(cmd, function (error, stdout) {
     if (error !== null) {
       return callback(error);
     }

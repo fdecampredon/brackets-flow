@@ -6,6 +6,7 @@
   "globals": {
     "define": true,
     "brackets": true,
-    "$": true
+    "$": true,
+    "Mustache": true
   }
 }

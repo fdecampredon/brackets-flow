@@ -15,8 +15,10 @@ declare var define: any;
 var FileSystem = brackets.getModule('filesystem/FileSystem');
 var CodeInspection = brackets.getModule('language/CodeInspection');
 var ProjectManager = brackets.getModule('project/ProjectManager');
+var CodeHintManager = brackets.getModule('editor/CodeHintManager');
 
 var FlowErrorProvider = require('./errorProvider');
+var FlowCompletionProvider = require('./completionProvider');
 var flow = require('./flow');
 
 
@@ -67,6 +69,7 @@ function init(connection: any) {
   flow.setNodeConnection(connection);
   updateProject();
   CodeInspection.register('javascript', FlowErrorProvider); 
+  CodeHintManager.registerHintProvider(FlowCompletionProvider, ['javascript'], 1);
   $(ProjectManager).on('projectOpen', updateProject);
 }
 
@@ -76,6 +79,7 @@ function updateProject() {
   }
   projectRoot = ProjectManager.getProjectRoot().fullPath;
   fileSystemSubsription = checkForFile(configFileName, (hasFile) => hasFile && flow.start(projectRoot));
+  
 }
 
 
