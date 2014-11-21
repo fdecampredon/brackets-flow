@@ -65,16 +65,32 @@ type FlowError = {
 }
 
 function status(): Promise<FlowError[]> {
-  return  executeCommand('flow status --json --from brackets-flow   --show-all-errors')
+  return executeCommand('flow status --json --from brackets-flow   --show-all-errors')
     .then(function (message: { errors: Error[]; })  {
       return message.errors; 
     });
     
 }
 
+type DefLocation = {
+  path: string;
+  line: number;
+  endline: number;
+  start: number;
+  end: number;
+}
+
+function getDef(fileName: string, content: string, line: number, column: number): Promise<DefLocation> {
+  return executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
+    "' | flow get-def " + fileName + " " + line + " " + column + " --json --from brackets-flow");
+}
+
+
+
 module.exports = {
   start, 
   setNodeConnection, 
   status,
-  autocomplete
+  autocomplete,
+  getDef
 };

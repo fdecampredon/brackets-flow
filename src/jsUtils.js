@@ -63,6 +63,12 @@ function getQuery(editor: any): string {
 }
 
 
+function isFlowFile(content: string): boolean {
+  return content.indexOf('@flow') !== -1;
+}
+
+
 module.exports = {
-  getQuery
+  getQuery,
+  isFlowFile
 };

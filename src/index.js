@@ -16,9 +16,11 @@ var FileSystem = brackets.getModule('filesystem/FileSystem');
 var CodeInspection = brackets.getModule('language/CodeInspection');
 var ProjectManager = brackets.getModule('project/ProjectManager');
 var CodeHintManager = brackets.getModule('editor/CodeHintManager');
+var EditorManager = brackets.getModule('editor/EditorManager');
 
 var FlowErrorProvider = require('./errorProvider');
 var FlowHintProvider = require('./hintProvider');
+var inlineEditProvider = require('./inlineEditProvider');
 var flow = require('./flow');
 
 
@@ -70,6 +72,7 @@ function init(connection: any) {
   updateProject();
   CodeInspection.register('javascript', FlowErrorProvider); 
   CodeHintManager.registerHintProvider(FlowHintProvider, ['javascript'], 1);
+  EditorManager.registerInlineEditProvider(inlineEditProvider, 1);
   $(ProjectManager).on('projectOpen', updateProject);
 }
 

@@ -5,7 +5,7 @@ declare var brackets: any;
 
 
 var { autocomplete }  = require('./flow');
-var { getQuery }      = require('./jsUtils');
+var { getQuery, isFlowFile }      = require('./jsUtils');
 var StringMatch       = brackets.getModule("utils/StringMatch");
 
 
@@ -15,7 +15,7 @@ var matcher :any = new StringMatch.StringMatcher({ preferPrefixMatches: true });
 function hasHints(_editor: any, implicitChar: string): boolean {
   if (
     (!implicitChar || /[\w.\($_]/.test(implicitChar)) &&
-    _editor.document.getText().indexOf('@flow') !== -1
+    isFlowFile(editor.document.getText())
   ) {
     
     editor = _editor;

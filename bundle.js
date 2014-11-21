@@ -5411,11 +5411,11 @@ process.chdir = function (dir) {
 },{}],37:[function(require,module,exports){
 /*@flow*/
 
-var $__0=    require('./flow'),flowStatus=$__0.flowStatus;
+var $__0=    require('./flow'),status=$__0.status;
 
 function scanFileAsync(content        , path        )      {
   return $.Deferred(function(deffered)  {
-    flowStatus().then(function(errors)  {
+    status().then(function(errors)  {
       var bracketsErrors = errors
         .filter(function(error)  {return error.message[0].path === path;})
         .map(function(error)  {return {
@@ -5512,19 +5512,35 @@ function autocomplete(fileName        , content        , line        , column   
          
  
 
-function flowStatus()                       {
-  return  executeCommand('flow status --json --from brackets-flow')
+function status()                       {
+  return executeCommand('flow status --json --from brackets-flow   --show-all-errors')
     .then(function (message                      )  {
       return message.errors; 
     });
     
 }
 
+                    
+               
+               
+                  
+                
+              
+ 
+
+function getDef(fileName        , content        , line        , column        )                       {
+  return executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
+    "' | flow get-def " + fileName + " " + line + " " + column + " --json --from brackets-flow");
+}
+
+
+
 module.exports = {
   start:start, 
   setNodeConnection:setNodeConnection, 
-  flowStatus:flowStatus,
-  autocomplete:autocomplete
+  status:status,
+  autocomplete:autocomplete,
+  getDef:getDef
 };
 
 },{"bluebird":3}],39:[function(require,module,exports){
@@ -5535,7 +5551,7 @@ module.exports = {
 
 
 var $__0=     require('./flow'),autocomplete=$__0.autocomplete;
-var $__1=         require('./jsUtils'),getQuery=$__1.getQuery;
+var $__1=          require('./jsUtils'),getQuery=$__1.getQuery,isFlowFile=$__1.isFlowFile;
 var StringMatch       = brackets.getModule("utils/StringMatch");
 
 
@@ -5545,7 +5561,7 @@ var matcher      = new StringMatch.StringMatcher({ preferPrefixMatches: true });
 function hasHints(_editor     , implicitChar        )          {
   if (
     (!implicitChar || /[\w.\($_]/.test(implicitChar)) &&
-    _editor.document.getText().indexOf('@flow') !== -1
+    isFlowFile(editor.document.getText())
   ) {
     
     editor = _editor;
@@ -5638,7 +5654,7 @@ module.exports =  {
   getHints:getHints,
   insertHint:insertHint
 };
-},{"./flow":38,"./jsUtils":41}],40:[function(require,module,exports){
+},{"./flow":38,"./jsUtils":42}],40:[function(require,module,exports){
 
 /*@flow*/
                           
@@ -5657,9 +5673,11 @@ var FileSystem = brackets.getModule('filesystem/FileSystem');
 var CodeInspection = brackets.getModule('language/CodeInspection');
 var ProjectManager = brackets.getModule('project/ProjectManager');
 var CodeHintManager = brackets.getModule('editor/CodeHintManager');
+var EditorManager = brackets.getModule('editor/EditorManager');
 
 var FlowErrorProvider = require('./errorProvider');
 var FlowHintProvider = require('./hintProvider');
+var inlineEditProvider = require('./inlineEditProvider');
 var flow = require('./flow');
 
 
@@ -5711,6 +5729,7 @@ function init(connection     ) {
   updateProject();
   CodeInspection.register('javascript', FlowErrorProvider); 
   CodeHintManager.registerHintProvider(FlowHintProvider, ['javascript'], 1);
+  EditorManager.registerInlineEditProvider(inlineEditProvider, 1);
   $(ProjectManager).on('projectOpen', updateProject);
 }
 
@@ -5726,7 +5745,65 @@ function updateProject() {
 
 
 module.exports = init;
-},{"./errorProvider":37,"./flow":38,"./hintProvider":39}],41:[function(require,module,exports){
+},{"./errorProvider":37,"./flow":38,"./hintProvider":39,"./inlineEditProvider":41}],41:[function(require,module,exports){
+/*@flow*/
+
+var $__0=    require('./flow'),getDef=$__0.getDef;
+var $__1=    require('./jsUtils'),isFlowFile=$__1.isFlowFile;
+                     
+
+
+var DocumentManager = brackets.getModule('document/DocumentManager');
+var MultiRangeInlineEditor = brackets.getModule('editor/MultiRangeInlineEditor').MultiRangeInlineEditor;
+
+function inlineEditProvider(hostEditor     , pos                            ) {
+  
+  
+  if (hostEditor.getModeForSelection() !== 'javascript') {
+    return null;
+  }
+
+  var sel = hostEditor.getSelection(false);
+  if (sel.start.line !== sel.end.line) {
+    return null;
+  }
+  
+  var fileName = hostEditor.document.file.fullPath;
+  var content = hostEditor.document.getText();
+  if (!isFlowFile(content)) {
+    return;
+  }
+  
+  var deferred = $.Deferred();
+ 
+  getDef(fileName, content, pos.line + 1, pos.ch + 1)
+    .then(function(definition)  {
+      if (!definition.path) {
+        deferred.reject();
+      }
+    
+      return DocumentManager.getDocumentForPath(definition.path).then(function(doc)  {
+        var inlineEditor = new MultiRangeInlineEditor([{
+            document : doc,
+            name: '',
+            lineStart: definition.line - 1,  
+            lineEnd: definition.endline - 1,
+            fileName: definition.path
+        }]);
+        
+        inlineEditor.load(hostEditor);
+        deferred.resolve(inlineEditor);
+      });
+    
+    }).catch(function(e)  {
+        deferred.reject(e);
+    });
+      
+  return deferred;
+}
+
+module.exports = inlineEditProvider;
+},{"./flow":38,"./jsUtils":42}],42:[function(require,module,exports){
 /*@flow*/
 
 /* code from acorn see: https://github.com/marijnh/acorn/ */
@@ -5792,8 +5869,14 @@ function getQuery(editor     )         {
 }
 
 
+function isFlowFile(content        )          {
+  return content.indexOf('@flow') !== -1;
+}
+
+
 module.exports = {
-  getQuery:getQuery
+  getQuery:getQuery,
+  isFlowFile:isFlowFile
 };
 },{}]},{},[40])(40)
 });
