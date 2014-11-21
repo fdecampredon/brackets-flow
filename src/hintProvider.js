@@ -15,7 +15,7 @@ var matcher :any = new StringMatch.StringMatcher({ preferPrefixMatches: true });
 function hasHints(_editor: any, implicitChar: string): boolean {
   if (
     (!implicitChar || /[\w.\($_]/.test(implicitChar)) &&
-    isFlowFile(editor.document.getText())
+    isFlowFile(_editor.document.getText())
   ) {
     
     editor = _editor;
