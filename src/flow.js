@@ -169,7 +169,7 @@ type TypeInfo = {
 /**
  * retrieves type info and location for a given file and position
  */
-function typeAtPos(fileName: string, content: string, line: number, column: number): Promise<DefLocation> {
+function typeAtPos(fileName: string, content: string, line: number, column: number): Promise<TypeInfo> {
   return getCommandAtPos('type-at-pos', fileName, content, line, column);
 }
 

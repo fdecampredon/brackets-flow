@@ -17,7 +17,6 @@
  */
 
 
-
 //---------------------------------------
 //
 // settings
@@ -31,7 +30,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 if (process.env.NODE_ENV === 'production') {
-  bluebird.onPossiblyUnhandledRejection(e =>  e);
+  bluebird.onPossiblyUnhandledRejection(e => e);
 }
 
 //---------------------------------------
@@ -40,17 +39,18 @@ if (process.env.NODE_ENV === 'production') {
 //
 //---------------------------------------
 
-var FileSystem = brackets.getModule('filesystem/FileSystem');
-var CodeInspection = brackets.getModule('language/CodeInspection');
-var ProjectManager = brackets.getModule('project/ProjectManager');
-var CodeHintManager = brackets.getModule('editor/CodeHintManager');
-var EditorManager = brackets.getModule('editor/EditorManager');
+var FileSystem                = brackets.getModule('filesystem/FileSystem');
+var CodeInspection            = brackets.getModule('language/CodeInspection');
+var ProjectManager            = brackets.getModule('project/ProjectManager');
+var CodeHintManager           = brackets.getModule('editor/CodeHintManager');
+var EditorManager             = brackets.getModule('editor/EditorManager');
 
-var FlowErrorProvider = require('./errorProvider');
-var FlowHintProvider = require('./hintProvider');
-var inlineEditProvider = require('./inlineEditProvider');
-var jumpToDefinitionProvider = require('./jumpToDefinitionProvider');
-var flow = require('./flow');
+var ErrorProvider             = require('./errorProvider');
+var HintProvider              = require('./hintProvider');
+var inlineEditProvider        = require('./inlineEditProvider');
+var jumpToDefinitionProvider  = require('./jumpToDefinitionProvider');
+var TypePopup                 = require('./typePopUp');
+var flow                      = require('./flow');
 
 declare var brackets: any;
 
@@ -118,10 +118,13 @@ var fileSystemSubsription: ?{ dispose:() => void };
 function init(connection: any) {
   flow.setNodeConnection(connection);
   updateProject();
-  CodeInspection.register('javascript', FlowErrorProvider); 
-  CodeHintManager.registerHintProvider(FlowHintProvider, ['javascript'], 1);
+  
+  CodeInspection.register('javascript', ErrorProvider); 
+  CodeHintManager.registerHintProvider(HintProvider, ['javascript'], 1);
   EditorManager.registerInlineEditProvider(inlineEditProvider, 1);
   EditorManager.registerJumpToDefProvider(jumpToDefinitionProvider, 1);
+  TypePopup.init();
+  
   $(ProjectManager).on('projectOpen', updateProject);
 }
 

@@ -7,6 +7,6 @@
     "define": true,
     "brackets": true,
     "$": true,
-    "Mustache": true
+    "requestAnimationFrame": true
   }
 }

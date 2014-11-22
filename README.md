@@ -10,3 +10,4 @@ Until that plugin is considered stable use the [Install From URL](https://github
 * Errors reporting
 * Code Hints
 * Quick Edit
+* Tooltip that displays type
