@@ -1,9 +1,23 @@
 /*@flow*/
+//---------------------------------------
+//
+// Import
+//
+//---------------------------------------
 
 var { status } = require('./flow');
 
+//---------------------------------------
+//
+// Public
+//
+//---------------------------------------
+
+/**
+ * retieve errors for a given file
+ */
 function scanFileAsync(content: string, path: string): any {
-  return $.Deferred(deffered => {
+  return $.Deferred(deferred => {
     status().then(errors => {
       var bracketsErrors = errors
         .filter(error => error.message[0].path === path)
@@ -23,10 +37,9 @@ function scanFileAsync(content: string, path: string): any {
         aborted: false,
         errors: bracketsErrors
       };
-    }).then(
-      res => deffered.resolve(res),
-      err => deffered.reject(err)
-    );
+    })
+    .then(res => deferred.resolve(res))
+    .catch(err => deferred.reject(err));
   }).promise();
 }
 

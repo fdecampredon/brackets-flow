@@ -1,9 +1,22 @@
 
 /*@flow*/
-declare var brackets: any;
-declare var define: any;
 
 
+//---------------------------------------
+//
+// settings
+//
+//---------------------------------------
+
+var bluebird: any = require('bluebird');
+
+if (process.env.NODE_ENV !== 'production') {
+  bluebird.longStackTraces();
+}
+
+if (process.env.NODE_ENV === 'production') {
+  bluebird.onPossiblyUnhandledRejection(e =>  e);
+}
 
 //---------------------------------------
 //
@@ -11,7 +24,6 @@ declare var define: any;
 //
 //---------------------------------------
 
-//imports
 var FileSystem = brackets.getModule('filesystem/FileSystem');
 var CodeInspection = brackets.getModule('language/CodeInspection');
 var ProjectManager = brackets.getModule('project/ProjectManager');
@@ -24,6 +36,8 @@ var inlineEditProvider = require('./inlineEditProvider');
 var jumpToDefinitionProvider = require('./jumpToDefinitionProvider');
 var flow = require('./flow');
 
+declare var brackets: any;
+
 
 //---------------------------------------
 //
@@ -33,6 +47,12 @@ var flow = require('./flow');
 
 var projectRoot: string = '';
 var configFileName = '.flowconfig';
+
+//---------------------------------------
+//
+// Private
+//
+//---------------------------------------
 
 function checkForFile(file, handler) {
   function run() {
@@ -57,17 +77,28 @@ function checkForFile(file, handler) {
   };
 }
 
-
+function updateProject() {
+  if (fileSystemSubsription) {
+    fileSystemSubsription.dispose();
+  }
+  projectRoot = ProjectManager.getProjectRoot().fullPath;
+  fileSystemSubsription = checkForFile(configFileName, (hasFile) => hasFile && flow.start(projectRoot));
+}
 
 
 //---------------------------------------
 //
-// Init
+// State
 //
 //---------------------------------------
-
 
 var fileSystemSubsription: ?{ dispose:() => void };
+//---------------------------------------
+//
+// Public
+//
+//---------------------------------------
+
 function init(connection: any) {
   flow.setNodeConnection(connection);
   updateProject();
@@ -78,14 +109,7 @@ function init(connection: any) {
   $(ProjectManager).on('projectOpen', updateProject);
 }
 
-function updateProject() {
-  if (fileSystemSubsription) {
-    fileSystemSubsription.dispose();
-  }
-  projectRoot = ProjectManager.getProjectRoot().fullPath;
-  fileSystemSubsription = checkForFile(configFileName, (hasFile) => hasFile && flow.start(projectRoot));
-  
-}
+
 
 
 

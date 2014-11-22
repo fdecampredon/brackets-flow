@@ -5410,11 +5410,25 @@ process.chdir = function (dir) {
 
 },{}],37:[function(require,module,exports){
 /*@flow*/
+//---------------------------------------
+//
+// Import
+//
+//---------------------------------------
 
 var $__0=    require('./flow'),status=$__0.status;
 
+//---------------------------------------
+//
+// Public
+//
+//---------------------------------------
+
+/**
+ * retieve errors for a given file
+ */
 function scanFileAsync(content        , path        )      {
-  return $.Deferred(function(deffered)  {
+  return $.Deferred(function(deferred)  {
     status().then(function(errors)  {
       var bracketsErrors = errors
         .filter(function(error)  {return error.message[0].path === path;})
@@ -5434,10 +5448,9 @@ function scanFileAsync(content        , path        )      {
         aborted: false,
         errors: bracketsErrors
       };
-    }).then(
-      function(res)  {return deffered.resolve(res);},
-      function(err)  {return deffered.reject(err);}
-    );
+    })
+    .then(function(res)  {return deferred.resolve(res);})
+    .catch(function(err)  {return deferred.reject(err);});
   }).promise();
 }
 
@@ -5448,11 +5461,30 @@ module.exports = {
 },{"./flow":38}],38:[function(require,module,exports){
 /* @flow */
 
+//---------------------------------------
+//
+// Import
+//
+//---------------------------------------
+
+
 var Promise = require('bluebird').Promise;
+
+//---------------------------------------
+//
+// States
+//
+//---------------------------------------
 
 var running          ;
 var projectRoot = '';
 var nodeConnection     ;
+
+//---------------------------------------
+//
+// Private
+//
+//---------------------------------------
 
 
 /**
@@ -5466,7 +5498,23 @@ function executeCommand   (command        )               {
   }
 }
 
+/**
+ * execute a command at a pos for a given file and his content
+ */
+function getCommandAtPos(command        , fileName        , content        , line        , column        )               {
+  return executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
+    "' | flow " + command + " " + fileName + " " + line + " " + column + " --json --from brackets-flow");
+}
 
+//---------------------------------------
+//
+// Public
+//
+//---------------------------------------
+
+/**
+ * start the extension
+ */
 function start(root        )               {
   if (projectRoot !== root) {
     projectRoot = root;
@@ -5475,12 +5523,16 @@ function start(root        )               {
   return Promise.resolve(running);
 }
 
+/**
+ * set the node connection used by this module
+ */
 function setNodeConnection(conn     )       {
   nodeConnection = conn;
 }
  
-
-
+/**
+ * a type representing a CompletionEntry
+ */
                         
                
                
@@ -5495,11 +5547,16 @@ function setNodeConnection(conn     )       {
               
  
 
+/**
+ * retrieves completion entry for a given file and position
+ */
 function autocomplete(fileName        , content        , line        , column        )                             {
-  return executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
-    "' | flow autocomplete " + fileName + " " + line + " " + column + " --json --from brackets-flow");
+  return getCommandAtPos('autocomplete', fileName, content, line, column);
 }
 
+/**
+ * at type representing errors reported by flow
+ */
                   
             
                     
@@ -5512,14 +5569,19 @@ function autocomplete(fileName        , content        , line        , column   
          
  
 
+/**
+ * perform a full check on the application
+ */
 function status()                       {
   return executeCommand('flow status --json --from brackets-flow   --show-all-errors')
     .then(function (message                      )  {
       return message.errors; 
     });
-    
 }
 
+/**
+ * a type represention definition info and location
+ */
                     
                
                
@@ -5528,36 +5590,103 @@ function status()                       {
               
  
 
+/**
+ * retrieves definition info and location for a given file and position
+ */
 function getDef(fileName        , content        , line        , column        )                       {
-  return executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
-    "' | flow get-def " + fileName + " " + line + " " + column + " --json --from brackets-flow");
+  return getCommandAtPos('get-def', fileName, content, line, column);
 }
 
+/**
+ * a type representing a type info
+ */
+                 
+               
+                 
+               
+               
+                  
+                
+              
+ 
 
+/**
+ * retrieves type info and location for a given file and position
+ */
+function typeAtPos(fileName        , content        , line        , column        )                       {
+  return getCommandAtPos('type-at-pos', fileName, content, line, column);
+}
 
 module.exports = {
   start:start, 
   setNodeConnection:setNodeConnection, 
   status:status,
   autocomplete:autocomplete,
-  getDef:getDef
+  getDef:getDef,
+  typeAtPos:typeAtPos
 };
 
 },{"bluebird":3}],39:[function(require,module,exports){
 /*@flow*/
 
-                          
+//---------------------------------------
+//
+// Import
+//
+//---------------------------------------
+
+var $__0=             require('./flow'),autocomplete=$__0.autocomplete;
+var $__1=      require('./jsUtils'),getQuery=$__1.getQuery,isFlowFile=$__1.isFlowFile;
+var StringMatch               = brackets.getModule("utils/StringMatch");
+
                           
 
 
-var $__0=     require('./flow'),autocomplete=$__0.autocomplete;
-var $__1=          require('./jsUtils'),getQuery=$__1.getQuery,isFlowFile=$__1.isFlowFile;
-var StringMatch       = brackets.getModule("utils/StringMatch");
+//---------------------------------------
+//
+// States
+//
+//---------------------------------------
 
 
 var editor      ;
 var matcher      = new StringMatch.StringMatcher({ preferPrefixMatches: true });
 
+
+function formatHints($__0 ) {var entry=$__0.entry,searchResult=$__0.searchResult;
+  var jqueryObj = $('<span>');
+  var ranges                                                                      = searchResult.stringRanges;
+
+  var content = ranges.map(function(range)  {
+    var result = $('<span>');
+    result.text(range.text);
+    if (range.matched) {
+      result.css({ 'font-weight': 'bold'});
+    }
+    return result;
+  });
+
+  if (entry.type) {
+    var typeSpan = $('<span>');
+    typeSpan.text(entry.type).text(' - ' + entry.type);
+    content.push(typeSpan);
+  }
+
+  jqueryObj.append(content);
+  jqueryObj.data('entry', entry);
+
+  return jqueryObj;
+}
+
+//---------------------------------------
+//
+// Public
+//
+//---------------------------------------
+
+/**
+ * check if flow can provide hints for the current position
+ */
 function hasHints(_editor     , implicitChar        )          {
   if (
     (!implicitChar || /[\w.\($_]/.test(implicitChar)) &&
@@ -5571,69 +5700,38 @@ function hasHints(_editor     , implicitChar        )          {
   return false;
 }
 
-
+/**
+ * retrieve hints for the current position
+ */
 function getHints(implicitChar        )      {
   var fileName         = editor.document.file.fullPath;
   var position                             = editor.getCursorPos();
   var content         = editor.document.getText();
   var query = getQuery(editor);
   
-  
-  var deferred = $.Deferred();
-  
   if (!hasHints(editor, implicitChar)) {
-    deferred.resolve({
-        hints: [],
-        selectInitial: false 
-      });
-  } else {
-    autocomplete(fileName, content, position.line + 1, position.ch + 1).then(function(entries)  {
-      var hints = entries
-        .map(function(entry)  {return {
-          entry: entry,
-          searchResult: matcher.match(entry.name, query)
-        };})
-        .filter(function(entry)  {return !!entry.searchResult;})
-        .sort(function(entryA, entryB)  {return entryA.searchResult.matchGoodness - entryB.searchResult.matchGoodness;})
-        .map(function ($__0 ) {var entry=$__0.entry,searchResult=$__0.searchResult;
-          var jqueryObj = $('<span>');
-          var ranges                                                                      = searchResult.stringRanges;
-          
-          var content = ranges.map(function(range)  {
-            var result = $('<span>');
-            result.text(range.text);
-            if (range.matched) {
-              result.css({ 'font-weight': 'bold'});
-            }
-            return result;
-          });
-          
-          if (entry.type) {
-            var typeSpan = $('<span>');
-            typeSpan.text(entry.type).text(' - ' + entry.type);
-            content.push(typeSpan);
-          }
-          
-          
-          jqueryObj.append(content);
-          jqueryObj.data('entry', entry);
-          
-          return jqueryObj;
-        });
-      
-      
-      deferred.resolve({
-        hints: hints,
-        match: null,
-        selectInitial: true
-      });
-    });
+    return true;
   }
-  return deferred;
+  
+  return $.Deferred(function(deferred)  {
+    autocomplete(fileName, content, position.line + 1, position.ch + 1)
+      .then(function(entries)  
+        {return entries
+          .map(function(entry)  {return { entry:entry, searchResult: matcher.match(entry.name, query)};})
+          .filter(function(entry)  {return !!entry.searchResult;})
+          .sort(function(entryA, entryB)  {return entryA.searchResult.matchGoodness - entryB.searchResult.matchGoodness;})
+          .map(formatHints);}
+       )
+       .then(function(hints)  {return deferred.resolve({ hints: hints, match: null,  selectInitial: true });})
+       .catch(function(e)  {return deferred.reject(e);});
+        
+  });
 }
 
 
-
+/**
+ * insert a given hint
+ */
 function insertHint($hintObj     )       {
   var entry  = $hintObj.data('entry');
   var query = getQuery(editor);
@@ -5648,7 +5746,6 @@ function insertHint($hintObj     )       {
   editor.document.replaceRange(entry.name, startPos, position);
 }
 
-
 module.exports =  {
   hasHints:hasHints,
   getHints:getHints,
@@ -5658,10 +5755,23 @@ module.exports =  {
 },{"./flow":38,"./jsUtils":42}],40:[function(require,module,exports){
 
 /*@flow*/
-                          
-                        
 
 
+//---------------------------------------
+//
+// settings
+//
+//---------------------------------------
+
+var bluebird      = require('bluebird');
+
+if ("production" !== 'production') {
+  bluebird.longStackTraces();
+}
+
+if ("production" === 'production') {
+  bluebird.onPossiblyUnhandledRejection(function(e)   {return e;});
+}
 
 //---------------------------------------
 //
@@ -5669,7 +5779,6 @@ module.exports =  {
 //
 //---------------------------------------
 
-//imports
 var FileSystem = brackets.getModule('filesystem/FileSystem');
 var CodeInspection = brackets.getModule('language/CodeInspection');
 var ProjectManager = brackets.getModule('project/ProjectManager');
@@ -5682,6 +5791,8 @@ var inlineEditProvider = require('./inlineEditProvider');
 var jumpToDefinitionProvider = require('./jumpToDefinitionProvider');
 var flow = require('./flow');
 
+                          
+
 
 //---------------------------------------
 //
@@ -5691,6 +5802,12 @@ var flow = require('./flow');
 
 var projectRoot         = '';
 var configFileName = '.flowconfig';
+
+//---------------------------------------
+//
+// Private
+//
+//---------------------------------------
 
 function checkForFile(file, handler) {
   function run() {
@@ -5715,17 +5832,28 @@ function checkForFile(file, handler) {
   };
 }
 
-
+function updateProject() {
+  if (fileSystemSubsription) {
+    fileSystemSubsription.dispose();
+  }
+  projectRoot = ProjectManager.getProjectRoot().fullPath;
+  fileSystemSubsription = checkForFile(configFileName, function(hasFile)  {return hasFile && flow.start(projectRoot);});
+}
 
 
 //---------------------------------------
 //
-// Init
+// State
 //
 //---------------------------------------
-
 
 var fileSystemSubsription                         ;
+//---------------------------------------
+//
+// Public
+//
+//---------------------------------------
+
 function init(connection     ) {
   flow.setNodeConnection(connection);
   updateProject();
@@ -5736,31 +5864,38 @@ function init(connection     ) {
   $(ProjectManager).on('projectOpen', updateProject);
 }
 
-function updateProject() {
-  if (fileSystemSubsription) {
-    fileSystemSubsription.dispose();
-  }
-  projectRoot = ProjectManager.getProjectRoot().fullPath;
-  fileSystemSubsription = checkForFile(configFileName, function(hasFile)  {return hasFile && flow.start(projectRoot);});
-  
-}
+
 
 
 
 module.exports = init;
-},{"./errorProvider":37,"./flow":38,"./hintProvider":39,"./inlineEditProvider":41,"./jumpToDefinitionProvider":43}],41:[function(require,module,exports){
+},{"./errorProvider":37,"./flow":38,"./hintProvider":39,"./inlineEditProvider":41,"./jumpToDefinitionProvider":43,"bluebird":3}],41:[function(require,module,exports){
 /*@flow*/
 
-var $__0=    require('./flow'),getDef=$__0.getDef;
-var $__1=    require('./jsUtils'),isFlowFile=$__1.isFlowFile;
-                     
+//---------------------------------------
+//
+// Import
+//
+//---------------------------------------
 
+var $__0=                 require('./flow'),getDef=$__0.getDef;
+var $__1=             require('./jsUtils'),isFlowFile=$__1.isFlowFile;
 
-var DocumentManager = brackets.getModule('document/DocumentManager');
-var MultiRangeInlineEditor = brackets.getModule('editor/MultiRangeInlineEditor').MultiRangeInlineEditor;
+var DocumentManager         = brackets.getModule('document/DocumentManager');
+var MultiRangeInlineEditor  = brackets.getModule('editor/MultiRangeInlineEditor').MultiRangeInlineEditor;
 
+                          
+
+//---------------------------------------
+//
+// Public
+//
+//---------------------------------------
+
+/**
+ * a function that provide inline editor
+ */
 function inlineEditProvider(hostEditor     , pos                            ) {
-  
   
   if (hostEditor.getModeForSelection() !== 'javascript') {
     return null;
@@ -5777,32 +5912,31 @@ function inlineEditProvider(hostEditor     , pos                            ) {
     return;
   }
   
-  var deferred = $.Deferred();
- 
-  getDef(fileName, content, pos.line + 1, pos.ch + 1)
-    .then(function(definition)  {
-      if (!definition.path) {
-        deferred.reject();
-      }
-    
-      return DocumentManager.getDocumentForPath(definition.path).then(function(doc)  {
-        var inlineEditor = new MultiRangeInlineEditor([{
-            document : doc,
-            name: '',
-            lineStart: definition.line - 1,  
-            lineEnd: definition.endline - 1,
-            fileName: definition.path
-        }]);
-        
-        inlineEditor.load(hostEditor);
-        deferred.resolve(inlineEditor);
-      });
-    
-    }).catch(function(e)  {
-        deferred.reject(e);
-    });
-      
-  return deferred.promise();
+  return $.Deferred(function(deferred)  {
+    getDef(fileName, content, pos.line + 1, pos.ch + 1)
+      .then(function(definition)  {
+
+        if (!definition.path) {
+          throw 'could not find a def for the given path and file';
+        }
+
+        return DocumentManager.getDocumentForPath(definition.path).then(function(doc)  {
+          var inlineEditor = new MultiRangeInlineEditor([{
+              document : doc,
+              name: '',
+              lineStart: definition.line - 1,  
+              lineEnd: definition.endline - 1,
+              fileName: definition.path
+          }]);
+
+          inlineEditor.load(hostEditor);
+          return inlineEditor;
+        });
+
+      })
+      .then(function(inlineEditor)  {return deferred.resolve(inlineEditor);})
+      .catch(function(err)  {return deferred.reject(err);});
+  }).promise();
 }
 
 module.exports = inlineEditProvider;
@@ -5884,65 +6018,63 @@ module.exports = {
 },{}],43:[function(require,module,exports){
 /*@flow*/
 
+//---------------------------------------
+//
+// Import
+//
+//---------------------------------------
 
-var EditorManager = brackets.getModule('editor/EditorManager'),
-    Commands = brackets.getModule('command/Commands'),
-    CommandManager = brackets.getModule('command/CommandManager');
+var EditorManager     = brackets.getModule('editor/EditorManager');
+var Commands          = brackets.getModule('command/Commands');
+var CommandManager    = brackets.getModule('command/CommandManager');
 
+var Promise           = require('bluebird').Promise;
+var $__0=           require('./flow'),getDef=$__0.getDef;
+var $__1=       require('./jsUtils'),isFlowFile=$__1.isFlowFile;
 
-var Promise = require('bluebird').Promise;
-
-var $__0=    require('./flow'),getDef=$__0.getDef;
-var $__1=    require('./jsUtils'),isFlowFile=$__1.isFlowFile;
-
-                     
-
-
+                          
     
-function jumpToDefinitionProvider() {
-  var editor = EditorManager.getFocusedEditor();
+//---------------------------------------
+//
+// Public
+//
+//---------------------------------------
+
+/**
+ * jum to def provider
+ */
+function jumpToDefinitionProvider(editor     , pos                            ) {
 
   if (!editor || editor.getModeForSelection() !== 'javascript') {
       return null;
   }
-  
 
-  var sel = editor.getSelection(false);
-  if (sel.start.line !== sel.end.line) {
-    return null;
-  }
-  
   var fileName = editor.document.file.fullPath;
   var content = editor.document.getText();
   if (!isFlowFile(content)) {
     return;
   }
   
-  var deferred = $.Deferred();
- 
-  var pos = editor.getCursorPos();
+  return $.Deferred(function(deferred)  {
+    getDef(fileName, content, pos.line + 1, pos.ch + 1)
+      .then(function(definition)  {
+        if (!definition.path || editor !== EditorManager.getFocusedEditor() || 
+            editor.getCursorPos().line !== pos.line) {
+          throw 'obsolete request';
+        }
 
-  getDef(fileName, content, pos.line + 1, pos.ch + 1)
-    .then(function(definition)  {
-      if (!definition.path) {
-        deferred.reject();
-      }
-      if (editor === EditorManager.getFocusedEditor()) {
-          if (editor.getCursorPos().line === pos.line) {
-            Promise.resolve(definition.path === fileName? 
-              true: 
-              CommandManager.execute(Commands.FILE_OPEN, {fullPath: definition.path})
-            ).then(function() {
-              var editor = EditorManager.getFocusedEditor();
-              editor.setCursorPos(definition.line -1, definition.start -1, true, true);
-              deferred.resolve(true);
-            }).catch(function(e)  {return deferred.reject(e);});
-          }
-      }
-      deferred.reject();
-  }, function()  {return deferred.reject();}); 
-  
-  return deferred.promise();
+        return Promise.resolve(definition.path === fileName? 
+          true: 
+          CommandManager.execute(Commands.FILE_OPEN, {fullPath: definition.path})
+        ).then(function() {
+          var editor = EditorManager.getFocusedEditor();
+          editor.setCursorPos(definition.line -1, definition.start -1, true, true);
+          return true;
+        });
+      })
+      .then(function(res)  {return deferred.resolve(res);})
+      .catch(function(e)  {return deferred.reject(e);});
+  }).promise();
 }
 
 module.exports = jumpToDefinitionProvider;

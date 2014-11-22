@@ -1,10 +1,29 @@
 /* @flow */
 
+//---------------------------------------
+//
+// Import
+//
+//---------------------------------------
+
+
 var Promise = require('bluebird').Promise;
+
+//---------------------------------------
+//
+// States
+//
+//---------------------------------------
 
 var running: ?Promise;
 var projectRoot = '';
 var nodeConnection: any;
+
+//---------------------------------------
+//
+// Private
+//
+//---------------------------------------
 
 
 /**
@@ -18,7 +37,23 @@ function executeCommand<T>(command: string): Promise<any> {
   }
 }
 
+/**
+ * execute a command at a pos for a given file and his content
+ */
+function getCommandAtPos(command: string, fileName: string, content: string, line: number, column: number): Promise<any> {
+  return executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
+    "' | flow " + command + " " + fileName + " " + line + " " + column + " --json --from brackets-flow");
+}
 
+//---------------------------------------
+//
+// Public
+//
+//---------------------------------------
+
+/**
+ * start the extension
+ */
 function start(root: string): Promise<any> {
   if (projectRoot !== root) {
     projectRoot = root;
@@ -27,12 +62,16 @@ function start(root: string): Promise<any> {
   return Promise.resolve(running);
 }
 
+/**
+ * set the node connection used by this module
+ */
 function setNodeConnection(conn: any): void {
   nodeConnection = conn;
 }
  
-
-
+/**
+ * a type representing a CompletionEntry
+ */
 type CompletionEntry = {
   name: string;
   type: string;
@@ -47,11 +86,16 @@ type CompletionEntry = {
   end: number;
 }
 
+/**
+ * retrieves completion entry for a given file and position
+ */
 function autocomplete(fileName: string, content: string, line: number, column: number): Promise<CompletionEntry[]> {
-  return executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
-    "' | flow autocomplete " + fileName + " " + line + " " + column + " --json --from brackets-flow");
+  return getCommandAtPos('autocomplete', fileName, content, line, column);
 }
 
+/**
+ * at type representing errors reported by flow
+ */
 type FlowError = {
   message: {
       descr: string;
@@ -64,14 +108,19 @@ type FlowError = {
     } [];
 }
 
+/**
+ * perform a full check on the application
+ */
 function status(): Promise<FlowError[]> {
   return executeCommand('flow status --json --from brackets-flow   --show-all-errors')
     .then(function (message: { errors: Error[]; })  {
       return message.errors; 
     });
-    
 }
 
+/**
+ * a type represention definition info and location
+ */
 type DefLocation = {
   path: string;
   line: number;
@@ -80,17 +129,38 @@ type DefLocation = {
   end: number;
 }
 
+/**
+ * retrieves definition info and location for a given file and position
+ */
 function getDef(fileName: string, content: string, line: number, column: number): Promise<DefLocation> {
-  return executeCommand("echo '"+ content.replace(/'/g, "'\\''" ) + 
-    "' | flow get-def " + fileName + " " + line + " " + column + " --json --from brackets-flow");
+  return getCommandAtPos('get-def', fileName, content, line, column);
 }
 
+/**
+ * a type representing a type info
+ */
+type TypeInfo = {
+  type: string;
+  reasons: any[];
+  path: string;
+  line: number;
+  endline: number;
+  start: number;
+  end: number;
+}
 
+/**
+ * retrieves type info and location for a given file and position
+ */
+function typeAtPos(fileName: string, content: string, line: number, column: number): Promise<DefLocation> {
+  return getCommandAtPos('type-at-pos', fileName, content, line, column);
+}
 
 module.exports = {
   start, 
   setNodeConnection, 
   status,
   autocomplete,
-  getDef
+  getDef,
+  typeAtPos
 };
