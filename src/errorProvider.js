@@ -24,6 +24,7 @@
 //---------------------------------------
 
 var { status } = require('./flow');
+var { isFlowFile } = require('./jsUtils');
 
 //---------------------------------------
 //
@@ -36,6 +37,10 @@ var { status } = require('./flow');
  */
 function scanFileAsync(content: string, path: string): any {
   return $.Deferred(deferred => {
+    if (!isFlowFile(content)) {
+      deferred.resolve({errors: [], aborted: false});
+      return;
+    }
     status().then(errors => {
       var bracketsErrors = errors
         .filter(error => error.message[0].path === path)

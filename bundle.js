@@ -5435,6 +5435,7 @@ process.chdir = function (dir) {
 //---------------------------------------
 
 var $__0=    require('./flow'),status=$__0.status;
+var $__1=    require('./jsUtils'),isFlowFile=$__1.isFlowFile;
 
 //---------------------------------------
 //
@@ -5447,6 +5448,10 @@ var $__0=    require('./flow'),status=$__0.status;
  */
 function scanFileAsync(content        , path        )      {
   return $.Deferred(function(deferred)  {
+    if (!isFlowFile(content)) {
+      deferred.resolve({errors: [], aborted: false});
+      return;
+    }
     status().then(function(errors)  {
       var bracketsErrors = errors
         .filter(function(error)  {return error.message[0].path === path;})
@@ -5476,7 +5481,7 @@ module.exports = {
   name: 'Flow', 
   scanFileAsync:scanFileAsync 
 };
-},{"./flow":38}],38:[function(require,module,exports){
+},{"./flow":38,"./jsUtils":42}],38:[function(require,module,exports){
 /* @flow */
 
 /*
