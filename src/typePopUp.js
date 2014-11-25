@@ -25,6 +25,7 @@
 //---------------------------------------
 
 var { typeAtPos }   = require('./flow');
+var { isFlowFile }  = require('./jsUtils');
 var MainViewManager = brackets.getModule('view/MainViewManager');
 var DocumentManager = brackets.getModule('document/DocumentManager');
 
@@ -49,7 +50,7 @@ var UNKNOW_TYPE= '(unknown)';
  * 
  * @type {JQuery}
  */
-var $errorToolTipContainer: any;
+var $typeToolTipContainer: any;
 
 /**
 
@@ -57,7 +58,7 @@ var $errorToolTipContainer: any;
  * 
  * @type {JQuery}
  */
-var $errorToolTipContent: any;
+var $typeToolTipContent: any;
 
 
 //---------------------------------------
@@ -148,9 +149,9 @@ function getFullEditors(): any[] {
 /**
  * hide the error tooltip
  */
-function hideErrorToolTip() {
-  $errorToolTipContainer.hide();
-  $errorToolTipContent.html('');
+function hideTypeToolTip() {
+  $typeToolTipContainer.hide();
+  $typeToolTipContent.html('');
 }
 
 
@@ -159,15 +160,15 @@ function hideErrorToolTip() {
  * but always in the bound of the editor
  */
 function positionToolTip(xpos: number, ypos: number, ybot: number) {
-  $errorToolTipContainer.offset({
+  $typeToolTipContainer.offset({
     left: 0,
     top: 0
   });
-  $errorToolTipContainer.css('visibility', 'hidden');
+  $typeToolTipContainer.css('visibility', 'hidden');
 
   requestAnimationFrame(function () {
-    var toolTipWidth = $errorToolTipContainer.width(),
-      toolTipHeight = $errorToolTipContainer.height(),
+    var toolTipWidth = $typeToolTipContainer.width(),
+      toolTipHeight = $typeToolTipContainer.height(),
       top = ybot + TOOLTIP_BOUNDS_OFFSET,
       left = xpos - (toolTipWidth / 2),
 
@@ -179,23 +180,23 @@ function positionToolTip(xpos: number, ypos: number, ybot: number) {
     left = Math.min(left, editorOffset.left + $editorHolder.width() - toolTipWidth - TOOLTIP_BOUNDS_OFFSET - 10);
 
     if (top < (editorOffset.top + $editorHolder.height() - toolTipHeight - TOOLTIP_BOUNDS_OFFSET)) {
-      $errorToolTipContainer.removeClass('preview-bubble-above');
-      $errorToolTipContainer.addClass('preview-bubble-below');
-      $errorToolTipContainer.offset({
+      $typeToolTipContainer.removeClass('preview-bubble-above');
+      $typeToolTipContainer.addClass('preview-bubble-below');
+      $typeToolTipContainer.offset({
         left: left,
         top: top
       });
     } else {
-      $errorToolTipContainer.removeClass('preview-bubble-below');
-      $errorToolTipContainer.addClass('preview-bubble-above');
+      $typeToolTipContainer.removeClass('preview-bubble-below');
+      $typeToolTipContainer.addClass('preview-bubble-above');
       top = ypos - TOOLTIP_BOUNDS_OFFSET - toolTipHeight;
-      $errorToolTipContainer.offset({
+      $typeToolTipContainer.offset({
         left: left,
         top: top
       });
     }
 
-    $errorToolTipContainer.css('visibility', 'visible');
+    $typeToolTipContainer.css('visibility', 'visible');
   });
 }
 
@@ -215,7 +216,7 @@ function showTooltip(event: MouseEvent) {
   });
 
   if (!editor) {
-    hideErrorToolTip();
+    hideTypeToolTip();
     return;
   }
   // Find char mouse is over
@@ -223,7 +224,7 @@ function showTooltip(event: MouseEvent) {
   var pos = cm.coordsChar({ left: event.clientX, top: event.clientY });
   
   if (pos.ch >= editor.document.getLine(pos.line).length) {
-    hideErrorToolTip();
+    hideTypeToolTip();
     return;
   }
 
@@ -238,6 +239,11 @@ function showTooltip(event: MouseEvent) {
   var fileName = editor.document.file.fullPath;
   var content = editor.document.getText();
   
+  if (!isFlowFile(content)) {
+    hideTypeToolTip();
+    return;
+  }
+  
   var promise = typeAtPos(fileName, content, pos.line + 1, pos.ch + 1)
     .then(typeInfo => {
       if (lastRequest !== promise) {
@@ -245,7 +251,7 @@ function showTooltip(event: MouseEvent) {
       }
     
       if (!typeInfo || typeInfo.type === UNKNOW_TYPE) {
-        hideErrorToolTip();
+        hideTypeToolTip();
         return;
       }
     
@@ -254,8 +260,8 @@ function showTooltip(event: MouseEvent) {
         type = type.slice(0, 200) + ' ...';
       }
 
-      $errorToolTipContent.text(type);
-      $errorToolTipContainer.show();
+      $typeToolTipContent.text(type);
+      $typeToolTipContainer.show();
 
       coord = cm.charCoords(pos);
       positionToolTip(coord.left, coord.top, coord.bottom);
@@ -289,7 +295,7 @@ function cancelTimeout() {
 function handleMouseMove(event: MouseEvent) {
   if (event.which) {
     // Button is down - don't show popovers while dragging
-    hideErrorToolTip();
+    hideTypeToolTip();
     cancelTimeout();
     return;
   }
@@ -299,7 +305,7 @@ function handleMouseMove(event: MouseEvent) {
       Math.abs(lastEvent.clientX - event.clientX) > 5 ||
       Math.abs(lastEvent.clientY - event.clientY) > 5 
     ) {
-      hideErrorToolTip();
+      hideTypeToolTip();
       cancelTimeout();
     } else {
       return;
@@ -323,7 +329,7 @@ function handleMouseMove(event: MouseEvent) {
 function handleMouseOut(event) {
   var $editorHolder = $('#editor-holder');
   if (!divContainsMouse($editorHolder, event, 10, 10)) {
-    hideErrorToolTip();
+    hideTypeToolTip();
     cancelTimeout();
   }
 }
@@ -345,12 +351,12 @@ function init() {
   // Note: listening to 'scroll' also catches text edits, which bubble a scroll event up from the hidden text area. This means
   // we auto-hide on text edit, which is probably actually a good thing.
   editorHolder.addEventListener('mousemove', handleMouseMove, true);
-  editorHolder.addEventListener('scroll', hideErrorToolTip, true);
+  editorHolder.addEventListener('scroll', hideTypeToolTip, true);
   editorHolder.addEventListener('mouseout', handleMouseOut, true);
 
 
-  $errorToolTipContainer = $(ERROR_TOOLTIP_HTML).appendTo($('body'));
-  $errorToolTipContent = $errorToolTipContainer.find('.error-tooltip-content');
+  $typeToolTipContainer = $(ERROR_TOOLTIP_HTML).appendTo($('body'));
+  $typeToolTipContent = $typeToolTipContainer.find('.error-tooltip-content');
 }
 
 module.exports = { init };
