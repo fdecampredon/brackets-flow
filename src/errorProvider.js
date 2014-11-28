@@ -53,7 +53,8 @@ function scanFileAsync(content: string, path: string): any {
             line: error.message[0].line -1,
             ch: error.message[0].start -1
           },
-          message: error.message[0].descr
+          message: error.message.reduce(
+            (descr, message) => (descr + ' ' + message.descr), '')
         }));
 
       return {

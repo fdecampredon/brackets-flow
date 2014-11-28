@@ -5464,7 +5464,8 @@ function scanFileAsync(content        , path        )      {
             line: error.message[0].line -1,
             ch: error.message[0].start -1
           },
-          message: error.message[0].descr
+          message: error.message.reduce(
+            function(descr, message)  {return descr + ' ' + message.descr;}, '')
         };});
 
       return {
