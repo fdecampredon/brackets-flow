@@ -14,6 +14,10 @@ flow init
 flow start
 ```
 
+###Example:
+![Example hello.js](images/example.png)
+
+
 ##Features:
 * Errors reporting
 * Code Hints
